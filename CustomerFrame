@@ -1,0 +1,89 @@
+'''
+Created on Apr 23, 2020
+
+@author: Davis Swanson, Maia Ellenburg
+'''
+import tkinter as tk
+import tkinter.ttk as ttk
+import sqlite3  
+
+#from builtins import True
+
+
+
+class CustomerFrame(ttk.Frame):
+    def __init__(self, parent):
+        ttk.Frame.__init__(self, parent, padding="10 10 10 10")
+        self.pack(fill=tk.BOTH, expand=True)   
+        self.create_table()     
+                  
+       
+        #Define text entry fields and labels
+        ttk.Label(self, text="Name").grid(column=0, row=0, sticky=tk.E)
+        self.name = tk.StringVar()
+        ttk.Entry(self, width=25, textvariable=self.name).grid(column=1, row=0)
+        
+        ttk.Label(self, text="Address").grid(column=0, row=1, sticky=tk.E)
+        self.address = tk.StringVar()
+        ttk.Entry(self, width=25, textvariable=self.address).grid(column=1, row=1)
+        
+        ttk.Label(self, text="Phone #").grid(column=0, row=2, sticky=tk.E)
+        self.phone = tk.StringVar()
+        ttk.Entry(self, width=25, textvariable=self.phone).grid(column=1, row=2)
+
+        #Create Clearbutton
+        ttk.Button(self, text="Clear", command=self.clear).grid(column=1, row = 4)
+
+        #Create Savebutton    
+        ttk.Button(self, text="Save", command=self.data_entry).grid(column=1, row = 3) 
+        
+        #Create ExitButton
+        ttk.Button(self, text="Exit", command=root.destroy).grid(column=1, row = 5)   
+                    
+        #Add padding to all child components
+        for child in self.winfo_children():
+            child.grid_configure(padx=5, pady=3)
+                        
+    def clear(self):
+        #Define the event listener for the Clear button
+        print("Name", self.name.get())
+        self.name.set("")
+        
+        print("Address", self.address.get())
+        self.address.set("")
+        
+        print("Phone", self.phone.get())
+        self.phone.set("") 
+  
+    def create_table(self):    
+        c.execute("CREATE TABLE IF NOT EXISTS customers (name TEXT, cust_ID TEXT, job_ID INT, address TEXT, phone INT)")    
+
+    def data_entry(self):          
+        #Get customer info
+        name=self.name.get()
+        address=self.address.get()
+        phone=self.phone.get()
+        
+        cust_ID=str(name[:5]+phone[6:])
+        
+        #Add customer info to database
+        sql = '''INSERT INTO customers (name, address, phone, cust_ID)
+                 VALUES (?,?,?,?)'''
+        c.execute(sql, (name,address,phone,cust_ID))
+        conn.commit()    
+        
+
+#  -- main  --
+conn = sqlite3.connect("customer.db")    
+c = conn.cursor()    
+
+root = tk.Tk()
+root.title("PaintCalc")
+root.geometry("300x200")
+CustomerFrame(root)
+root.mainloop()
+
+c.close()    
+conn.close()    
+
+
