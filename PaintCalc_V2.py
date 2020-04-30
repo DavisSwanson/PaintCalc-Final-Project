@@ -24,7 +24,7 @@ class PaintCalc(tk.Tk):
 class StartPage(tk.Frame):
     def __init__(self, master):
         tk.Frame.__init__(self, master)
-        tk.Label(self, text="PaintCalc", font=('Helvetica', 18, "bold")).pack(side="top", fill="x", pady=5)
+        tk.Label(self, text="Paint Bidder", font=('Helvetica', 18, "bold")).pack(side="top", fill="x", pady=5)
         tk.Button(self, text="Create Customer",
                   command=lambda: master.switch_frame(CustomerFrame)).pack()
         tk.Button(self, text="Add Job",
@@ -63,8 +63,11 @@ class CustomerFrame(ttk.Frame):
         #Create Savebutton    
         ttk.Button(self, text="Save", command=self.data_entry).grid(column=1, row = 3) 
         
+        #Create Button to go to bid
+        ttk.Button(self, text="Go to create Job", command=lambda: parent.switch_frame(AddJob)).grid(column=1, row = 5)
+        
         #Create ExitButton
-        ttk.Button(self, text="Back", command=lambda: parent.switch_frame(StartPage)).grid(column=1, row = 5) 
+        ttk.Button(self, text="Back", command=lambda: parent.switch_frame(StartPage)).grid(column=1, row = 6) 
         
         c.close()    
         conn.close()  
@@ -145,7 +148,7 @@ class AddJob(ttk.Frame):
         self.height = tk.StringVar()
         ttk.Entry(self, width=25, textvariable=self.height).grid(column=1, row=6)
         
-        ttk.Label(self, text="Bid Value:").grid(column=0, row=7, sticky=tk.E)
+        ttk.Label(self, text="Bid Value: $").grid(column=0, row=7, sticky=tk.E)
         self.bid = tk.StringVar()
         ttk.Entry(self, width=30, textvariable=self.bid,state="readonly").grid(
             column=1, row=7)
@@ -181,7 +184,6 @@ class AddJob(ttk.Frame):
         
         c.execute(query, (name,))
         result = c.fetchone()
-        id=result[0]
         
         if result==None:
             ttk.Label(self, text="No Customer with that name. Create customer first").grid(column=1, row=12, sticky=tk.E)
@@ -189,6 +191,7 @@ class AddJob(ttk.Frame):
         else:
             self.calculate()
             bid=self.bid.get()
+            id=result[0]
             sql = '''INSERT INTO jobs (job_ID, cust_id, paint, width, length, height, windows, doors, bid)
                  VALUES (NULL,?,?,?,?,?,?,?,?)'''
             c2.execute(sql, (id,paint, width, length, height, windows, doors, bid))
@@ -202,9 +205,30 @@ class AddJob(ttk.Frame):
         height=float(self.height.get())
         length=float(self.length.get())
         width=float(self.width.get())
+        paint=float(self.paint.get())
         
-        bid=windows*doors
-        self.bid.set(bid)
+        paint1=70
+        paint2=50
+        paint3=30
+
+        window=3*5
+        door=2.5*6
+        
+        labor=0.32
+        
+        sq_ft=2*(((2*width+2*length)*height)-((window*windows)-(door*doors)))
+        labor_cost=labor*sq_ft
+        gallons=sq_ft/300
+        
+        if paint==1:
+            bid=(gallons*paint1)+labor_cost
+        elif paint==2:
+            bid=(gallons*paint2)+labor_cost
+        elif paint==3:
+            bid=(gallons*paint3)+labor_cost
+        
+        
+        self.bid.set(round(bid,2))
         
     def clear(self):
         #Define the event listener for the Clear button
@@ -224,7 +248,7 @@ conn2 = sqlite3.connect("jobs.db")
 c2 = conn2.cursor()  
 
 root=PaintCalc()
-root.title("PaintCalc")
+root.title("Paint Bidder")
 root.geometry("375x275")
 root.mainloop()
 
