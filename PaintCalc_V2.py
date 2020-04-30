@@ -3,11 +3,13 @@ Created on Apr 23, 2020
 
 @author: Davis Swanson, Maia Ellenburg
 '''
+
+#imports modules
 import tkinter as tk
 import tkinter.ttk as ttk
 import sqlite3  
 
-#from builtins import True
+#Defines Frame for Program and creates function for switching frames
 class PaintCalc(tk.Tk):
     def __init__(self):
         tk.Tk.__init__(self)
@@ -21,19 +23,20 @@ class PaintCalc(tk.Tk):
         self._frame = new_frame
         self._frame.pack()
 
+#Defines start page
 class StartPage(tk.Frame):
     def __init__(self, master):
         tk.Frame.__init__(self, master)
-        tk.Label(self, text="Paint Bidder", font=('Helvetica', 18, "bold")).pack(side="top", fill="x", pady=5)
-        tk.Button(self, text="Create Customer",
-                  command=lambda: master.switch_frame(CustomerFrame)).pack()
-        tk.Button(self, text="Add Job",
-                  command=lambda: master.switch_frame(AddJob)).pack()
-        tk.Button(self, text="View Customer History",
-                  command=lambda: master.switch_frame(PageTwo)).pack()
+        tk.Label(self, text="Paint Bidder", font=('Helvetica', 18, "bold")).pack(side="top", fill='x', pady=5)
+        
+        tk.Button(self, text="Create Customer",command=lambda: master.switch_frame(CustomerFrame)).pack()
+        
+        tk.Button(self, text="Add Job",command=lambda: master.switch_frame(AddJob)).pack()
+
+        tk.Button(self, text="Customer History",command=lambda: master.switch_frame(PageTwo)).pack()
 
 
-
+#Creates frame for creating new customers
 class CustomerFrame(ttk.Frame):
     def __init__(self, parent):
           
@@ -96,6 +99,7 @@ class CustomerFrame(ttk.Frame):
         address=self.address.get()
         phone=self.phone.get()
         
+        #Creates cust id based off name and phone number
         cust_ID=str(name[:5]+phone[6:])
         
         #Add customer info to database
@@ -104,11 +108,14 @@ class CustomerFrame(ttk.Frame):
         c.execute(sql, (name,address,phone,cust_ID))
         conn.commit()
         
+        #Lets user know its been saved
         ttk.Label(self, text="Saved!").grid(column=0, row=4, sticky=tk.E)  
         
+#Frame for creating new job
 class AddJob(ttk.Frame):
     def __init__(self, parent):
         
+        #Connect to our databases
         conn2 = sqlite3.connect("jobs.db")    
         c2 = conn2.cursor()  
         
@@ -162,6 +169,8 @@ class AddJob(ttk.Frame):
         #Clears entry fields
         ttk.Button(self, text="Clear", command=self.clear).grid(column=1, row = 11) 
         
+        ttk.Button(self, text="Create New Customer", command=lambda: parent.switch_frame(CustomerFrame)).grid(column=0, row = 11)
+        
         
     
     #Creates table
@@ -170,7 +179,7 @@ class AddJob(ttk.Frame):
 
     def create_job(self):      
    
-        #Get commands
+        #Gets data
         name=self.name.get()
         paint=self.paint.get()
         windows=self.windows.get()
@@ -179,14 +188,18 @@ class AddJob(ttk.Frame):
         length=self.length.get()
         width=self.width.get()
         
-        
+        #Finds customer ID related to name given
         query = '''SELECT cust_ID FROM customers WHERE name = ?'''
         
         c.execute(query, (name,))
         result = c.fetchone()
         
+        #Checks to see if the customer is in the database. If not it will prompt you to go to create new customer
         if result==None:
-            ttk.Label(self, text="No Customer with that name. Create customer first").grid(column=1, row=12, sticky=tk.E)
+            ttk.Label(self, text="No Customer with that name").grid(column=0, row=9, sticky=tk.E)
+            ttk.Label(self, text="Must create new customer first").grid(column=0, row=10, sticky=tk.E)
+
+            
             self.clear()
         else:
             self.calculate()
@@ -199,6 +212,7 @@ class AddJob(ttk.Frame):
             
             ttk.Label(self, text="Job Created!").grid(column=0, row=9, sticky=tk.E)
     
+    #Calculate bid
     def calculate(self):
         windows=float(self.windows.get())
         doors=float(self.doors.get())
@@ -240,6 +254,7 @@ class AddJob(ttk.Frame):
         self.length.set("") 
         self.width.set("") 
         self.bid.set("") 
+        
 #  -- main  --
 conn = sqlite3.connect("customer.db")    
 c = conn.cursor()  
