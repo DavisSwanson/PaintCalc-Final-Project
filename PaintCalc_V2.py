@@ -33,7 +33,9 @@ class StartPage(tk.Frame):
         
         tk.Button(self, text="Add Job",command=lambda: master.switch_frame(AddJob)).pack()
 
-        tk.Button(self, text="Customer History",command=lambda: master.switch_frame(PageTwo)).pack()
+        tk.Button(self, text="Customer History",command=lambda: master.switch_frame(CustomerHistory)).pack()
+        
+        tk.Button(self, text="Settings",command=lambda: master.switch_frame(Settings)).pack()
 
 
 #Creates frame for creating new customers
@@ -116,6 +118,9 @@ class AddJob(ttk.Frame):
     def __init__(self, parent):
         
         #Connect to our databases
+        conn3 = sqlite3.connect("settings.db")    
+        c3 = conn3.cursor()
+        
         conn2 = sqlite3.connect("jobs.db")    
         c2 = conn2.cursor()  
         
@@ -175,7 +180,7 @@ class AddJob(ttk.Frame):
     
     #Creates table
     def create_table(self):    
-        c2.execute("CREATE TABLE IF NOT EXISTS jobs (job_ID INTEGER PRIMARY KEY, cust_ID TEXT, paint TEXT, width INT, length INT, height INT, windows INT, doors INT, bid INT)")    
+        c2.execute("CREATE TABLE IF NOT EXISTS jobs (job_ID INTEGER PRIMARY KEY, cust_ID TEXT, paint INT, width INT, length INT, height INT, windows INT, doors INT, bid FLOAT)")    
 
     def create_job(self):      
    
@@ -221,14 +226,20 @@ class AddJob(ttk.Frame):
         width=float(self.width.get())
         paint=float(self.paint.get())
         
+        settings='''SELECT * FROM settings'''
+        c3.execute(settings)
+        values=c3.fetchone()
+        
+        print(values)
+        
         paint1=70
         paint2=50
         paint3=30
 
-        window=3*5
-        door=2.5*6
+        window=values[1]
+        door=values[2]
         
-        labor=0.32
+        labor=values[3]
         
         sq_ft=2*(((2*width+2*length)*height)-((window*windows)-(door*doors)))
         labor_cost=labor*sq_ft
@@ -255,12 +266,142 @@ class AddJob(ttk.Frame):
         self.width.set("") 
         self.bid.set("") 
         
+class Settings(ttk.Frame):
+    def __init__(self, parent):
+        ttk.Frame.__init__(self, parent, padding="10 10 10 10")
+        self.pack(fill=tk.BOTH, expand=True)   
+        self.create_table() 
+        
+        conn3 = sqlite3.connect("settings.db")    
+        c3 = conn3.cursor()   
+        
+        self.window = tk.StringVar()
+        self.door = tk.StringVar()
+        self.labor = tk.StringVar()
+        
+        ttk.Label(self, text="Window ft^2:").grid(
+            column=0, row=0, sticky=tk.E)
+        ttk.Entry(self, width=30, textvariable=self.window).grid(
+            column=1, row=0)
+        
+        ttk.Label(self, text="Door ft^2:").grid(
+            column=0, row=1, sticky=tk.E)
+        ttk.Entry(self, width=30, textvariable=self.door).grid(
+            column=1, row=1)
+        
+        ttk.Label(self, text="Labor %:").grid(
+            column=0, row=2, sticky=tk.E)
+        ttk.Entry(self, width=30, textvariable=self.labor).grid(
+            column=1, row=2)
+        
+        ttk.Button(self, text="Update",command=self.update).grid(
+            column=1, row=3)
+        
+        ttk.Button(self, text="Back", command=lambda: parent.switch_frame(StartPage)).grid(column=1, row = 4) 
+    
+    def create_table(self):    
+        c3.execute("CREATE TABLE IF NOT EXISTS settings (setting_id INTEGER PRIMARY KEY, window INT, door INT, labor FLOAT)") 
+        
+    def update(self):
+        window=self.window.get()
+        door=self.door.get()
+        labor=self.labor.get()
+        
+        query='''INSERT OR REPLACE INTO settings VALUES(?,?,?,?)'''
+        
+        c3.execute(query, (1, window, door, labor))
+        conn3.commit()
+        
+        ttk.Label(self, text="Data Updated").grid(
+            column=0, row=4, sticky=tk.E)
+        
+
+class CustomerHistory(ttk.Frame):
+    def __init__(self, parent):
+        
+        #Connect to databases
+        conn2 = sqlite3.connect("jobs.db")    
+        c2 = conn2.cursor()  
+        
+        conn = sqlite3.connect("customer.db")    
+        c = conn.cursor()  
+        
+        ttk.Frame.__init__(self, parent, padding="10 10 10 10")
+        self.pack(fill=tk.BOTH, expand=True)   
+    
+        #Define Labels and Fields
+        
+        ttk.Label(self, text = "Customer Name").grid(column=0, row=0, sticky=tk.E)
+        self.name = tk.StringVar()
+        ttk.Entry(self, width=30, textvariable=self.name).grid(column=1, row=0)
+        
+        #Gets jobs from database
+        ttk.Button(self, text="Generate Customer History", command=self.generate).grid(column=1, row =1 ) 
+        
+        #Field for displaying retrieved data
+        ttk.Label(self, text="Job History: ").grid(column=0, row=2, sticky=tk.E)
+        self.bid = tk.StringVar()
+        ttk.Entry(self,width=30, textvariable=self.bid,state="readonly").grid(
+            column=1, row=2)    
+
+        
+#         ttk.Button(self, text="Create New Customer", command=lambda: parent.switch_frame(CustomerFrame)).grid(column=0, row = 11)
+#              
+    def clear(self):
+        self.name.set(" ")
+#             
+    
+    def generate(self):
+        #Gets data
+         name = self.name.get()
+         query = '''SELECT cust_id FROM customers WHERE name = ?'''
+         
+         c.execute(query, (name,))
+         result = c.fetchone()
+#        
+         if result==None:
+           ttk.Label(self, text="No Customer with that name").grid(column=1, row=9, sticky=tk.E)
+           ttk.Label(self, text="Must create new customer first").grid(column=1, row=10, sticky=tk.E)
+        
+         else:
+            self.getjobs()
+            
+    
+    def getjobs(self):
+        name = self.name.get()
+        query1 = '''SELECT cust_id FROM customers WHERE name = ?'''
+         
+        c.execute(query1, (name,))
+        cust_id = c.fetchone()
+        
+        id=cust_id[0]
+        
+        query2 = '''SELECT cust_ID, paint, width, length, height, bid FROM jobs WHERE cust_ID = ?'''
+        c2.execute(query2, (id,))
+        results = c2.fetchall()
+        
+        line_format = "{:4s} {:4s} {:4s} {:4s} {:4s} {:4s}"
+        print(line_format.format("cust_ID", "Paint", "Width", "Length", "Height","Bid"))
+        for x in results:
+            print('')
+            for y in x:
+                print(y, end='   ')
+                      
+        
+        #ttk.Label(self, text = print_result).grid(column=1, row=9, sticky=tk.E)
+         
+        conn.commit()
+        conn.close()
+    
 #  -- main  --
 conn = sqlite3.connect("customer.db")    
 c = conn.cursor()  
 
 conn2 = sqlite3.connect("jobs.db")    
 c2 = conn2.cursor()  
+
+conn3 = sqlite3.connect("settings.db")    
+c3 = conn3.cursor()     
 
 root=PaintCalc()
 root.title("Paint Bidder")
